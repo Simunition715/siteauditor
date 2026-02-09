@@ -25,7 +25,7 @@ Run both server and client:
 npm run dev
 ```
 
-- Server will run on: http://localhost:3001
+- Server will run on: http://localhost:3000
 - Client will run on: http://localhost:5173
 
 ### Separate Processes
@@ -64,7 +64,7 @@ If you encounter Chrome-related errors:
 
 ### Port Already in Use
 
-If port 3001 or 5173 is already in use:
+If port 3000 or 5173 is already in use:
 
 - Change the port in `server/index.js` (PORT variable)
 - Change the port in `client/vite.config.js` (server.port)

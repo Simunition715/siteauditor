@@ -1,17 +1,21 @@
 import { useState } from 'react';
 import AuditForm from './components/AuditForm';
 import QualityHubForm from './components/QualityHubForm';
+import UxAuditForm from './components/UxAuditForm';
 import LoadingScreen from './components/LoadingScreen';
 import QualityHubLoadingScreen from './components/QualityHubLoadingScreen';
+import UxAuditLoadingScreen from './components/UxAuditLoadingScreen';
 import ReportView from './components/ReportView';
 import QualityHubReportView from './components/QualityHubReportView';
+import UxAuditReportView from './components/UxAuditReportView';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('website'); // 'website' or 'quality'
+  const [activeTab, setActiveTab] = useState('website'); // 'website', 'quality', or 'ux'
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [qualityProgress, setQualityProgress] = useState({ progress: 0, message: '', logs: [] });
+  const [uxProgress, setUxProgress] = useState({ progress: 0, message: '' });
 
   const handleAuditSubmit = async (url) => {
     setLoading(true);
@@ -159,6 +163,71 @@ function App() {
     }
   };
 
+  const handleUxAuditSubmit = async (url) => {
+    setLoading(true);
+    setError(null);
+    setReport(null);
+    setUxProgress({ progress: 0, message: 'Initializing...' });
+
+    try {
+      const response = await fetch('/api/audit/ux', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to start UX audit');
+      }
+
+      const { jobId } = await response.json();
+
+      // Poll for results
+      const pollInterval = setInterval(async () => {
+        try {
+          const statusResponse = await fetch(`/api/audit/ux/${jobId}`);
+          const status = await statusResponse.json();
+
+          if (status.status === 'running' || status.progress !== undefined) {
+            setUxProgress({
+              progress: status.progress || 0,
+              message: status.message || 'Running audit...',
+            });
+          }
+
+          if (status.status === 'completed') {
+            clearInterval(pollInterval);
+            setLoading(false);
+            setReport(status.result);
+            setUxProgress({ progress: 100, message: 'Complete!' });
+          } else if (status.status === 'failed') {
+            clearInterval(pollInterval);
+            setLoading(false);
+            setError(status.error || 'UX audit failed');
+          }
+        } catch (err) {
+          clearInterval(pollInterval);
+          setLoading(false);
+          setError('Failed to check audit status');
+        }
+      }, 2000);
+
+      // Timeout after 2 minutes
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        if (loading) {
+          setLoading(false);
+          setError('Audit timed out. Please try again.');
+        }
+      }, 120000);
+    } catch (err) {
+      setLoading(false);
+      setError(err.message || 'An error occurred');
+    }
+  };
+
   const handleNewAudit = () => {
     setReport(null);
     setError(null);
@@ -176,11 +245,10 @@ function App() {
                   setActiveTab('website');
                   setError(null);
                 }}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'website'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'website'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 Website Audit
               </button>
@@ -189,13 +257,24 @@ function App() {
                   setActiveTab('quality');
                   setError(null);
                 }}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'quality'
-                    ? 'border-purple-500 text-purple-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'quality'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 Code Quality
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('ux');
+                  setError(null);
+                }}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'ux'
+                  ? 'border-green-500 text-green-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+              >
+                Conversion & UX Audit
               </button>
             </nav>
           </div>
@@ -208,6 +287,9 @@ function App() {
       {!report && !loading && activeTab === 'quality' && (
         <QualityHubForm onSubmit={handleQualityScan} error={error} loading={loading} />
       )}
+      {!report && !loading && activeTab === 'ux' && (
+        <UxAuditForm onSubmit={handleUxAuditSubmit} error={error} />
+      )}
       {loading && activeTab === 'website' && <LoadingScreen />}
       {loading && activeTab === 'quality' && (
         <QualityHubLoadingScreen
@@ -216,11 +298,20 @@ function App() {
           logs={qualityProgress.logs}
         />
       )}
+      {loading && activeTab === 'ux' && (
+        <UxAuditLoadingScreen
+          progress={uxProgress.progress}
+          message={uxProgress.message}
+        />
+      )}
       {report && activeTab === 'website' && (
         <ReportView report={report} onNewAudit={handleNewAudit} />
       )}
       {report && activeTab === 'quality' && (
         <QualityHubReportView report={report} onNewScan={handleNewAudit} />
+      )}
+      {report && activeTab === 'ux' && (
+        <UxAuditReportView report={report} onNewAudit={handleNewAudit} />
       )}
     </div>
   );

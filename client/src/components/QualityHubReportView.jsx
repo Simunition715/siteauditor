@@ -73,9 +73,8 @@ function QualityHubReportView({ report, onNewScan }) {
               setSelectedCategory(null);
               setActiveTab('findings');
             }}
-            className={`bg-white rounded-lg shadow-md p-6 cursor-pointer transition-all hover:shadow-lg ${
-              selectedCategory === null && activeTab === 'findings' ? 'ring-2 ring-purple-500' : ''
-            }`}
+            className={`bg-white rounded-lg shadow-md p-6 cursor-pointer transition-all hover:shadow-lg ${selectedCategory === null && activeTab === 'findings' ? 'ring-2 ring-purple-500' : ''
+              }`}
           >
             <div className="text-3xl font-bold text-gray-900">{summary.totalFindings}</div>
             <div className="text-sm text-gray-600 mt-1">Total Findings</div>
@@ -83,9 +82,8 @@ function QualityHubReportView({ report, onNewScan }) {
           </div>
           <div
             onClick={() => handleMetricClick('BUG')}
-            className={`bg-red-50 rounded-lg shadow-md p-6 border-l-4 border-red-500 cursor-pointer transition-all hover:shadow-lg ${
-              selectedCategory === 'BUG' ? 'ring-2 ring-red-500' : ''
-            }`}
+            className={`bg-red-50 rounded-lg shadow-md p-6 border-l-4 border-red-500 cursor-pointer transition-all hover:shadow-lg ${selectedCategory === 'BUG' ? 'ring-2 ring-red-500' : ''
+              }`}
           >
             <div className="text-3xl font-bold text-red-600">{summary.byCategory.BUG}</div>
             <div className="text-sm text-gray-600 mt-1">Bugs</div>
@@ -93,9 +91,8 @@ function QualityHubReportView({ report, onNewScan }) {
           </div>
           <div
             onClick={() => handleMetricClick('VULNERABILITY')}
-            className={`bg-purple-50 rounded-lg shadow-md p-6 border-l-4 border-purple-500 cursor-pointer transition-all hover:shadow-lg ${
-              selectedCategory === 'VULNERABILITY' ? 'ring-2 ring-purple-500' : ''
-            }`}
+            className={`bg-purple-50 rounded-lg shadow-md p-6 border-l-4 border-purple-500 cursor-pointer transition-all hover:shadow-lg ${selectedCategory === 'VULNERABILITY' ? 'ring-2 ring-purple-500' : ''
+              }`}
           >
             <div className="text-3xl font-bold text-purple-600">{summary.byCategory.VULNERABILITY}</div>
             <div className="text-sm text-gray-600 mt-1">Vulnerabilities</div>
@@ -103,9 +100,8 @@ function QualityHubReportView({ report, onNewScan }) {
           </div>
           <div
             onClick={() => handleMetricClick('CODE_SMELL')}
-            className={`bg-yellow-50 rounded-lg shadow-md p-6 border-l-4 border-yellow-500 cursor-pointer transition-all hover:shadow-lg ${
-              selectedCategory === 'CODE_SMELL' ? 'ring-2 ring-yellow-500' : ''
-            }`}
+            className={`bg-yellow-50 rounded-lg shadow-md p-6 border-l-4 border-yellow-500 cursor-pointer transition-all hover:shadow-lg ${selectedCategory === 'CODE_SMELL' ? 'ring-2 ring-yellow-500' : ''
+              }`}
           >
             <div className="text-3xl font-bold text-yellow-600">{summary.byCategory.CODE_SMELL}</div>
             <div className="text-sm text-gray-600 mt-1">Code Smells</div>
@@ -119,32 +115,29 @@ function QualityHubReportView({ report, onNewScan }) {
             <nav className="flex -mb-px">
               <button
                 onClick={() => setActiveTab('summary')}
-                className={`px-6 py-3 text-sm font-medium ${
-                  activeTab === 'summary'
+                className={`px-6 py-3 text-sm font-medium ${activeTab === 'summary'
                     ? 'border-b-2 border-purple-500 text-purple-600'
                     : 'text-gray-500 hover:text-gray-700'
-                }`}
+                  }`}
               >
                 Summary
               </button>
               <button
                 onClick={() => setActiveTab('findings')}
-                className={`px-6 py-3 text-sm font-medium ${
-                  activeTab === 'findings'
+                className={`px-6 py-3 text-sm font-medium ${activeTab === 'findings'
                     ? 'border-b-2 border-purple-500 text-purple-600'
                     : 'text-gray-500 hover:text-gray-700'
-                }`}
+                  }`}
               >
                 Findings ({selectedCategory ? filteredFindings.length : findings.length})
                 {selectedCategory && ` (${findings.length} total)`}
               </button>
               <button
                 onClick={() => setActiveTab('metrics')}
-                className={`px-6 py-3 text-sm font-medium ${
-                  activeTab === 'metrics'
+                className={`px-6 py-3 text-sm font-medium ${activeTab === 'metrics'
                     ? 'border-b-2 border-purple-500 text-purple-600'
                     : 'text-gray-500 hover:text-gray-700'
-                }`}
+                  }`}
               >
                 Metrics
               </button>
@@ -193,13 +186,12 @@ function QualityHubReportView({ report, onNewScan }) {
                               <li key={idx} className="font-mono text-xs">
                                 {finding.title}
                                 {finding.severity && (
-                                  <span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${
-                                    finding.severity === 'CRITICAL' || finding.severity === 'BLOCKER'
+                                  <span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${finding.severity === 'CRITICAL' || finding.severity === 'BLOCKER'
                                       ? 'bg-red-100 text-red-800'
                                       : finding.severity === 'MAJOR'
-                                      ? 'bg-yellow-100 text-yellow-800'
-                                      : 'bg-gray-100 text-gray-800'
-                                  }`}>
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : 'bg-gray-100 text-gray-800'
+                                    }`}>
                                     {finding.severity}
                                   </span>
                                 )}
@@ -273,13 +265,12 @@ function QualityHubReportView({ report, onNewScan }) {
                     return (
                       <div
                         key={idx}
-                        className={`rounded-lg border-l-4 overflow-hidden transition-all ${
-                          finding.category === 'BUG'
+                        className={`rounded-lg border-l-4 overflow-hidden transition-all ${finding.category === 'BUG'
                             ? 'bg-red-50 border-red-500'
                             : finding.category === 'VULNERABILITY'
-                            ? 'bg-purple-50 border-purple-500'
-                            : 'bg-yellow-50 border-yellow-500'
-                        }`}
+                              ? 'bg-purple-50 border-purple-500'
+                              : 'bg-yellow-50 border-yellow-500'
+                          }`}
                       >
                         {/* Collapsed Row */}
                         <div
@@ -290,24 +281,22 @@ function QualityHubReportView({ report, onNewScan }) {
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-2">
                                 <span className="font-bold text-sm text-gray-700">{finding.id}</span>
-                                <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                                  finding.severity === 'CRITICAL' || finding.severity === 'BLOCKER'
+                                <span className={`px-2 py-1 rounded text-xs font-semibold ${finding.severity === 'CRITICAL' || finding.severity === 'BLOCKER'
                                     ? 'bg-red-100 text-red-800'
                                     : finding.severity === 'MAJOR'
-                                    ? 'bg-yellow-100 text-yellow-800'
-                                    : finding.severity === 'MINOR'
-                                    ? 'bg-blue-100 text-blue-800'
-                                    : 'bg-gray-100 text-gray-800'
-                                }`}>
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : finding.severity === 'MINOR'
+                                        ? 'bg-blue-100 text-blue-800'
+                                        : 'bg-gray-100 text-gray-800'
+                                  }`}>
                                   {finding.severity}
                                 </span>
-                                <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                                  finding.category === 'BUG'
+                                <span className={`px-2 py-1 rounded text-xs font-semibold ${finding.category === 'BUG'
                                     ? 'bg-red-200 text-red-900'
                                     : finding.category === 'VULNERABILITY'
-                                    ? 'bg-purple-200 text-purple-900'
-                                    : 'bg-yellow-200 text-yellow-900'
-                                }`}>
+                                      ? 'bg-purple-200 text-purple-900'
+                                      : 'bg-yellow-200 text-yellow-900'
+                                  }`}>
                                   {finding.category}
                                 </span>
                               </div>
@@ -318,9 +307,8 @@ function QualityHubReportView({ report, onNewScan }) {
                             </div>
                             <div className="ml-4">
                               <svg
-                                className={`w-5 h-5 text-gray-500 transition-transform ${
-                                  isExpanded ? 'transform rotate-180' : ''
-                                }`}
+                                className={`w-5 h-5 text-gray-500 transition-transform ${isExpanded ? 'transform rotate-180' : ''
+                                  }`}
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -484,9 +472,8 @@ function QualityHubReportView({ report, onNewScan }) {
                                 </div>
                               </div>
                               <svg
-                                className={`w-5 h-5 text-gray-500 transition-transform ${
-                                  isExpanded ? 'transform rotate-180' : ''
-                                }`}
+                                className={`w-5 h-5 text-gray-500 transition-transform ${isExpanded ? 'transform rotate-180' : ''
+                                  }`}
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -544,13 +531,12 @@ function QualityHubReportView({ report, onNewScan }) {
                                             <td className="p-1 font-mono">{func.name}</td>
                                             <td className="p-1">{func.line}</td>
                                             <td className="p-1">
-                                              <span className={`px-1.5 py-0.5 rounded ${
-                                                func.complexity > 15
+                                              <span className={`px-1.5 py-0.5 rounded ${func.complexity > 15
                                                   ? 'bg-red-100 text-red-800'
                                                   : func.complexity > 10
-                                                  ? 'bg-yellow-100 text-yellow-800'
-                                                  : 'bg-green-100 text-green-800'
-                                              }`}>
+                                                    ? 'bg-yellow-100 text-yellow-800'
+                                                    : 'bg-green-100 text-green-800'
+                                                }`}>
                                                 {func.complexity}
                                               </span>
                                             </td>

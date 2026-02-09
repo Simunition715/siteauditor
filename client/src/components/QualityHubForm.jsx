@@ -8,61 +8,76 @@ function QualityHubForm({ onSubmit, error, loading }) {
     // Check if File System Access API is supported (Chrome, Edge, newer browsers)
     if (typeof window !== 'undefined' && 'showDirectoryPicker' in window) {
       try {
+        // Try to start at a high level - browsers don't allow starting at root (C:\) for security
+        // Remove startIn to use browser default, or use 'desktop' which is closer to root
+        // User can navigate up to root from there
         const directoryHandle = await window.showDirectoryPicker({
-          mode: 'read',
-          startIn: 'documents'
+          mode: 'read'
+          // No startIn - browser will use default (often last used location or user's home)
+          // This gives user more control and may start closer to where they need to be
         });
 
         const folderName = directoryHandle.name;
 
-        // Try to get the path by reading a file from the directory
-        // This is a workaround - we'll try to get path info from the handle
+        // Try to get the actual path by reading a file from the directory
+        // This is a workaround - we read a file and extract its path, then remove the filename
+        let extractedPath = '';
+
         try {
-          // Try to query the directory for path information
-          // Note: This may not work in all browsers, but we'll try
+          // Try to find a file in the directory to get the path
           const entries = directoryHandle.entries();
-          const firstEntry = await entries.next();
+          let foundFile = false;
 
-          if (!firstEntry.done) {
-            // Try to get path from the entry if possible
-            // Unfortunately, the API doesn't expose full paths directly
-            // So we'll use a different approach - send the handle to server
-            // For now, let's try to extract what we can
+          for await (const entry of entries) {
+            const [name, handle] = entry;
+
+            // Try to get a file handle
+            if (handle.kind === 'file') {
+              try {
+                // Request the file to get its path
+                const file = await handle.getFile();
+
+                // Try to get path from file object
+                // Modern browsers don't expose this, but we can try
+                if (file.path) {
+                  // Remove the filename to get the directory path
+                  extractedPath = file.path.replace(/\\[^\\]*$/, '').replace(/\/[^\/]*$/, '');
+                  console.log('Extracted path from file.path:', extractedPath);
+                  foundFile = true;
+                  break;
+                }
+
+                // Try webkitRelativePath as fallback
+                if (file.webkitRelativePath) {
+                  const parts = file.webkitRelativePath.split('/');
+                  if (parts.length > 1) {
+                    // We have relative path, but need absolute
+                    // This won't work, but we'll try the name approach
+                  }
+                }
+              } catch (fileErr) {
+                // Continue trying other files
+              }
+            }
+
+            // Limit search to first few entries
+            if (entries.length > 10) break;
           }
         } catch (e) {
-          // Ignore errors
+          console.log('Could not extract path from directory handle:', e);
         }
 
-        // Try to get the actual path by querying the directory
-        // Unfortunately, the File System Access API doesn't expose full paths
-        // But we can try to work with what we have
-
-        // For now, we'll use the folder name
-        // The user can edit the path if needed, but we'll try to be smart about it
-        // In many cases, the folder they select will be in a common location
-
-        // Try to get more information by reading directory contents
-        // This won't give us the path, but helps confirm the selection
-        try {
-          const entries = [];
-          for await (const entry of directoryHandle.values()) {
-            entries.push(entry.name);
-            if (entries.length > 0) break; // Just check if we can read it
-          }
-        } catch (e) {
-          // Ignore
-        }
-
-        // The File System Access API doesn't expose full paths for security
-        // We can only get the folder name, not the full path
-        // Silently set the folder name - user can complete the path if needed
-        const currentPath = repoPath.trim();
-
-        if (!currentPath || currentPath === folderName || currentPath.length < folderName.length) {
-          // No path or just the folder name - set it (user will complete it)
+        // If we couldn't extract the path, try to use the folder name
+        // The backend will try to resolve it from common locations
+        if (!extractedPath) {
+          // Set the folder name - backend will try to find it in common locations
           setRepoPath(folderName);
+          console.log('Using folder name, backend will try to resolve:', folderName);
+        } else {
+          // Use the extracted path
+          setRepoPath(extractedPath);
+          console.log('Using extracted path:', extractedPath);
         }
-        // If user already has a full path, don't overwrite it
 
       } catch (err) {
         // User cancelled or error occurred
@@ -104,32 +119,36 @@ function QualityHubForm({ onSubmit, error, loading }) {
               console.log('Extracted path from input.value:', extractedPath);
             }
           }
-          // Method 3: Try webkitRelativePath and construct path
+          // Method 3: Try webkitRelativePath - but this only gives relative path
+          // We need to combine with the file's actual path if available
           else if (firstFile.webkitRelativePath) {
             const folderName = firstFile.webkitRelativePath.split('/')[0];
 
             // Try to get more info from the File object
-            // In some cases, the file might have additional properties
-            const fileObj = firstFile;
-
             // Check if there's any path information in the file object
-            // Some browsers store this in different places
+            const fileObj = firstFile;
+            let foundPathInObject = false;
+
             for (const key in fileObj) {
               if (typeof fileObj[key] === 'string' && (fileObj[key].includes('\\') || fileObj[key].includes('/'))) {
                 const potentialPath = fileObj[key];
+                // Check if it looks like an absolute path
                 if (potentialPath.length > folderName.length &&
-                    (potentialPath.includes('C:') || potentialPath.startsWith('/'))) {
-                  // This looks like a full path
+                  (potentialPath.includes('C:') || potentialPath.startsWith('/') || potentialPath.startsWith('\\\\'))) {
+                  // This looks like a full path - extract directory
                   extractedPath = potentialPath.replace(/\\[^\\]*$/, '').replace(/\/[^\/]*$/, '');
+                  foundPathInObject = true;
+                  console.log('Found path in file object property:', key, extractedPath);
                   break;
                 }
               }
             }
 
             // If we still don't have a path, use the folder name
-            // The user will need to complete it, but at least we have the folder name
-            if (!extractedPath) {
+            // The backend will try to resolve it from common locations
+            if (!foundPathInObject) {
               extractedPath = folderName;
+              console.log('Using folder name, backend will try to resolve:', folderName);
             }
           }
 

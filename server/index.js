@@ -3,16 +3,27 @@ const cors = require("cors");
 const { auditWebsite } = require("./services/auditService");
 const { createAuditJob, getJobStatus } = require("./services/jobService");
 const { runQualityScan } = require("./services/qualityService");
+const { runUxAudit } = require("./services/uxAuditService");
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 
+// Health check endpoint
+app.get("/", (req, res) => {
+  res.json({ status: "ok", message: "Site Auditor API is running" });
+});
+
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
 // Store jobs in memory (in production, use Redis)
 const jobs = new Map();
 const qualityJobs = new Map();
+const uxJobs = new Map();
 
 // Submit audit job
 app.post("/api/audit", async (req, res) => {
@@ -98,6 +109,57 @@ app.get("/api/quality/:jobId", (req, res) => {
     res.json(job);
   } catch (error) {
     console.error("Error getting quality job status:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to get job status", details: error.message });
+  }
+});
+
+// UX Audit endpoints
+app.post("/api/audit/ux", async (req, res) => {
+  try {
+    const { url } = req.body;
+
+    if (!url) {
+      return res.status(400).json({ error: "URL is required" });
+    }
+
+    // Validate URL
+    let validUrl;
+    try {
+      validUrl = new URL(url.startsWith("http") ? url : `https://${url}`);
+    } catch (e) {
+      return res.status(400).json({ error: "Invalid URL format" });
+    }
+
+    const jobId = createAuditJob(uxJobs);
+
+    // Run UX audit asynchronously
+    runUxAudit(validUrl.href, jobId, uxJobs).catch((err) => {
+      console.error("UX audit error:", err);
+      uxJobs.set(jobId, { status: "failed", error: err.message });
+    });
+
+    res.json({ jobId });
+  } catch (error) {
+    console.error("Error creating UX audit:", error);
+    res.status(500).json({ error: "Failed to create UX audit job" });
+  }
+});
+
+// Get UX audit job status
+app.get("/api/audit/ux/:jobId", (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const job = getJobStatus(uxJobs, jobId);
+
+    if (!job) {
+      return res.status(404).json({ error: "Job not found" });
+    }
+
+    res.json(job);
+  } catch (error) {
+    console.error("Error getting UX audit job status:", error);
     res
       .status(500)
       .json({ error: "Failed to get job status", details: error.message });

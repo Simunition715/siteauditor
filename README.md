@@ -445,7 +445,7 @@ npm run dev
 
 ### Usage
 
-1. **Start the server** (runs on port 3001)
+1. **Start the server** (runs on port 3000)
 2. **Open client** (runs on port 5173)
 3. **Submit a URL** to audit
 4. **Wait for audit** (typically 30-60 seconds)

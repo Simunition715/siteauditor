@@ -56,21 +56,19 @@ function ReportView({ report, onNewAudit }) {
           <div className="flex space-x-1">
             <button
               onClick={() => setCurrentPage(1)}
-              className={`px-6 py-3 text-sm font-semibold rounded-t-lg transition-all duration-200 ${
-                currentPage === 1
+              className={`px-6 py-3 text-sm font-semibold rounded-t-lg transition-all duration-200 ${currentPage === 1
                   ? 'bg-gradient-to-b from-blue-500 to-blue-600 text-white shadow-lg transform translate-y-[-2px]'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-              }`}
+                }`}
             >
               <AnalyticsIcon className="w-4 h-4 mr-1 inline" /> Summary
             </button>
             <button
               onClick={() => setCurrentPage(2)}
-              className={`px-6 py-3 text-sm font-semibold rounded-t-lg transition-all duration-200 ${
-                currentPage === 2
+              className={`px-6 py-3 text-sm font-semibold rounded-t-lg transition-all duration-200 ${currentPage === 2
                   ? 'bg-gradient-to-b from-blue-500 to-blue-600 text-white shadow-lg transform translate-y-[-2px]'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-              }`}
+                }`}
             >
               <SEOIcon className="w-4 h-4 mr-1 inline" /> Details
             </button>
