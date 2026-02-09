@@ -3,11 +3,21 @@ import type { Finding } from "../core/types.js";
 import type { FileInfo } from "../core/fileWalker.js";
 
 function isConfigLoadError(e: unknown): boolean {
-  const msg = e instanceof Error ? e.message : String(e);
+  const parts: string[] = [];
+  if (e instanceof Error) {
+    parts.push(e.message);
+    if (e.stack) parts.push(e.stack);
+    if (e.cause instanceof Error) parts.push(e.cause.message);
+    else if (e.cause) parts.push(String(e.cause));
+  }
+  parts.push(String(e));
+  const combined = parts.join(" ");
   return (
-    msg.includes("Failed to load config") ||
-    msg.includes("to extend from") ||
-    msg.includes("Cannot find module")
+    combined.includes("Failed to load config") ||
+    combined.includes("to extend from") ||
+    combined.includes("Cannot read config file") ||
+    combined.includes("Cannot find module") ||
+    combined.includes("ERR_REQUIRE_ESM")
   );
 }
 
@@ -134,7 +144,8 @@ export async function analyzeWithESLint(files: FileInfo[]): Promise<Finding[]> {
     return findings;
   }
 
-  const runWith = async (engine: ESLint): Promise<void> => {
+  let usedFallback = false;
+  const runWith = async (engine: ESLint, isFallbackRun = false): Promise<void> => {
     let processed = 0;
     for (const file of jsFiles) {
       try {
@@ -154,17 +165,18 @@ export async function analyzeWithESLint(files: FileInfo[]): Promise<Finding[]> {
           processLintResults(result, file, findings);
         }
       } catch (e) {
-        if (processed === 0 && isConfigLoadError(e)) {
-          // Project config failed to load (e.g. missing airbnb-base) - use fallback once
+        if (!usedFallback && !isFallbackRun && isConfigLoadError(e)) {
+          usedFallback = true;
           console.warn(
-            "ESLint: Project config could not be loaded (missing extend?). Using eslint:recommended for this scan."
+            "ESLint: Project config could not be loaded (missing deps e.g. @mui/core). Using eslint:recommended for this scan."
           );
-          const fallback = createFallbackESLint();
           findings.length = 0;
-          await runWith(fallback);
+          await runWith(createFallbackESLint(), true);
           return;
         }
-        console.warn(`ESLint could not process ${file.path}: ${e}`);
+        if (!isFallbackRun) {
+          console.warn(`ESLint could not process ${file.path}: ${e}`);
+        }
       }
     }
   };

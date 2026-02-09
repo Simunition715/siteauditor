@@ -62,9 +62,10 @@ async function runQualityScan(repoPath, jobId, jobs) {
       // Relative path - try multiple locations before defaulting to current directory
       const currentDir = process.cwd();
       const parentDir = path.dirname(currentDir);
-      const homeDir = process.platform === "win32"
-        ? (process.env.USERPROFILE || process.env.HOME)
-        : process.env.HOME;
+      const homeDir =
+        process.platform === "win32"
+          ? process.env.USERPROFILE || process.env.HOME
+          : process.env.HOME;
 
       // Priority order:
       // 1. Check as sibling to current directory (most common case)
@@ -109,7 +110,10 @@ async function runQualityScan(repoPath, jobId, jobs) {
         // Prioritize sibling path over current directory resolution
         // This is the most common case - folders next to the project
         normalizedPath = path.join(parentDir, cleanedPath);
-        console.log("No existing path found, using sibling path:", normalizedPath);
+        console.log(
+          "No existing path found, using sibling path:",
+          normalizedPath
+        );
       }
     }
 
@@ -144,7 +148,9 @@ async function runQualityScan(repoPath, jobId, jobs) {
 
           // Check for case-insensitive match
           const caseInsensitiveMatch = siblings.find(
-            (sibling) => sibling.toLowerCase() === path.basename(normalizedPath).toLowerCase()
+            (sibling) =>
+              sibling.toLowerCase() ===
+              path.basename(normalizedPath).toLowerCase()
           );
           if (caseInsensitiveMatch) {
             const correctedPath = path.join(parentDir, caseInsensitiveMatch);
@@ -165,124 +171,129 @@ async function runQualityScan(repoPath, jobId, jobs) {
       }
 
       if (!pathExists) {
-      // Try to find the path in common locations
-      const commonLocations = [];
+        // Try to find the path in common locations
+        const commonLocations = [];
 
-      if (process.platform === "win32") {
-        const homeDir = process.env.USERPROFILE || process.env.HOME;
-        const username = process.env.USERNAME || "user";
+        if (process.platform === "win32") {
+          const homeDir = process.env.USERPROFILE || process.env.HOME;
+          const username = process.env.USERNAME || "user";
 
-        if (homeDir) {
-          // Check in user's home directory and subdirectories
-          commonLocations.push(
-            path.join(homeDir, cleanedPath),
-            path.join(homeDir, "Documents", cleanedPath),
-            path.join(homeDir, "Desktop", cleanedPath),
-            path.join(homeDir, "projects", cleanedPath),
-            path.join(homeDir, "Projects", cleanedPath),
-            path.join(homeDir, "source", cleanedPath),
-            path.join(homeDir, "Source", cleanedPath),
-            path.join(homeDir, "dev", cleanedPath),
-            path.join(homeDir, "Dev", cleanedPath),
-            path.join(homeDir, "code", cleanedPath),
-            path.join(homeDir, "Code", cleanedPath),
-            path.join(homeDir, "repos", cleanedPath),
-            path.join(homeDir, "Repos", cleanedPath),
-            path.join(homeDir, "repositories", cleanedPath),
-            path.join(homeDir, "Repositories", cleanedPath)
-          );
-        }
-
-        // Also check common C:\Users paths
-        commonLocations.push(
-          path.join("C:", "Users", username, cleanedPath),
-          path.join("C:", "Users", username, "Documents", cleanedPath),
-          path.join("C:", "Users", username, "Desktop", cleanedPath),
-          path.join("C:", "Users", username, "projects", cleanedPath),
-          path.join("C:", "Users", username, "Projects", cleanedPath),
-          path.join("C:", "Users", username, "source", cleanedPath),
-          path.join("C:", "Users", username, "Source", cleanedPath),
-          path.join("C:", "Users", username, "dev", cleanedPath),
-          path.join("C:", "Users", username, "Dev", cleanedPath)
-        );
-
-        // Check parent directory (in case they're in a subfolder)
-        try {
-          const parentDir = path.dirname(process.cwd());
-          commonLocations.push(path.join(parentDir, cleanedPath));
-        } catch {}
-
-        // Check sibling directories (async, so we'll do this separately)
-        // Note: This is done after the initial check to avoid blocking
-      } else {
-        const homeDir = process.env.HOME;
-        if (homeDir) {
-          commonLocations.push(
-            path.join(homeDir, cleanedPath),
-            path.join(homeDir, "Documents", cleanedPath),
-            path.join(homeDir, "Desktop", cleanedPath),
-            path.join(homeDir, "projects", cleanedPath),
-            path.join(homeDir, "Projects", cleanedPath),
-            path.join(homeDir, "src", cleanedPath),
-            path.join(homeDir, "code", cleanedPath),
-            path.join(homeDir, "repos", cleanedPath)
-          );
-        }
-      }
-
-      // Check if any common location exists
-      let foundPath = null;
-      for (const commonPath of commonLocations) {
-        try {
-          const stats = await fs.stat(commonPath);
-          if (stats.isDirectory()) {
-            foundPath = commonPath;
-            break;
+          if (homeDir) {
+            // Check in user's home directory and subdirectories
+            commonLocations.push(
+              path.join(homeDir, cleanedPath),
+              path.join(homeDir, "Documents", cleanedPath),
+              path.join(homeDir, "Desktop", cleanedPath),
+              path.join(homeDir, "projects", cleanedPath),
+              path.join(homeDir, "Projects", cleanedPath),
+              path.join(homeDir, "source", cleanedPath),
+              path.join(homeDir, "Source", cleanedPath),
+              path.join(homeDir, "dev", cleanedPath),
+              path.join(homeDir, "Dev", cleanedPath),
+              path.join(homeDir, "code", cleanedPath),
+              path.join(homeDir, "Code", cleanedPath),
+              path.join(homeDir, "repos", cleanedPath),
+              path.join(homeDir, "Repos", cleanedPath),
+              path.join(homeDir, "repositories", cleanedPath),
+              path.join(homeDir, "Repositories", cleanedPath)
+            );
           }
-        } catch {
-          // Continue checking
+
+          // Also check common C:\Users paths
+          commonLocations.push(
+            path.join("C:", "Users", username, cleanedPath),
+            path.join("C:", "Users", username, "Documents", cleanedPath),
+            path.join("C:", "Users", username, "Desktop", cleanedPath),
+            path.join("C:", "Users", username, "projects", cleanedPath),
+            path.join("C:", "Users", username, "Projects", cleanedPath),
+            path.join("C:", "Users", username, "source", cleanedPath),
+            path.join("C:", "Users", username, "Source", cleanedPath),
+            path.join("C:", "Users", username, "dev", cleanedPath),
+            path.join("C:", "Users", username, "Dev", cleanedPath)
+          );
+
+          // Check parent directory (in case they're in a subfolder)
+          try {
+            const parentDir = path.dirname(process.cwd());
+            commonLocations.push(path.join(parentDir, cleanedPath));
+          } catch {}
+
+          // Check sibling directories (async, so we'll do this separately)
+          // Note: This is done after the initial check to avoid blocking
+        } else {
+          const homeDir = process.env.HOME;
+          if (homeDir) {
+            commonLocations.push(
+              path.join(homeDir, cleanedPath),
+              path.join(homeDir, "Documents", cleanedPath),
+              path.join(homeDir, "Desktop", cleanedPath),
+              path.join(homeDir, "projects", cleanedPath),
+              path.join(homeDir, "Projects", cleanedPath),
+              path.join(homeDir, "src", cleanedPath),
+              path.join(homeDir, "code", cleanedPath),
+              path.join(homeDir, "repos", cleanedPath)
+            );
+          }
         }
-      }
 
-      // Also check sibling directories if not found yet
-      if (!foundPath && process.platform === "win32") {
-        try {
-          const currentDir = process.cwd();
-          const parentDir = path.dirname(currentDir);
-          const siblings = await fs.readdir(parentDir).catch(() => []);
+        // Check if any common location exists
+        let foundPath = null;
+        for (const commonPath of commonLocations) {
+          try {
+            const stats = await fs.stat(commonPath);
+            if (stats.isDirectory()) {
+              foundPath = commonPath;
+              break;
+            }
+          } catch {
+            // Continue checking
+          }
+        }
 
-          // Check if any sibling folder matches the name (case-insensitive)
-          const folderName = path.basename(cleanedPath);
-          for (const sibling of siblings) {
-            const siblingPath = path.join(parentDir, sibling);
-            // Check if sibling itself matches (case-insensitive)
-            if (sibling.toLowerCase() === folderName.toLowerCase()) {
+        // Also check sibling directories if not found yet
+        if (!foundPath && process.platform === "win32") {
+          try {
+            const currentDir = process.cwd();
+            const parentDir = path.dirname(currentDir);
+            const siblings = await fs.readdir(parentDir).catch(() => []);
+
+            // Check if any sibling folder matches the name (case-insensitive)
+            const folderName = path.basename(cleanedPath);
+            for (const sibling of siblings) {
+              const siblingPath = path.join(parentDir, sibling);
+              // Check if sibling itself matches (case-insensitive)
+              if (sibling.toLowerCase() === folderName.toLowerCase()) {
+                try {
+                  const stats = await fs.stat(siblingPath);
+                  if (stats.isDirectory()) {
+                    foundPath = siblingPath;
+                    console.log("✓ Found matching sibling folder:", foundPath);
+                    break;
+                  }
+                } catch {}
+              }
+            }
+
+            // If still not found and it's just a folder name (no path separators), check sibling directly
+            if (
+              !foundPath &&
+              !path.isAbsolute(cleanedPath) &&
+              !cleanedPath.includes(path.sep) &&
+              !cleanedPath.includes("\\")
+            ) {
+              const directSiblingPath = path.join(parentDir, cleanedPath);
               try {
-                const stats = await fs.stat(siblingPath);
+                const stats = await fs.stat(directSiblingPath);
                 if (stats.isDirectory()) {
-                  foundPath = siblingPath;
-                  console.log("✓ Found matching sibling folder:", foundPath);
-                  break;
+                  foundPath = directSiblingPath;
+                  console.log("✓ Found folder as direct sibling:", foundPath);
                 }
               } catch {}
             }
+          } catch (siblingErr) {
+            console.log("Error checking siblings:", siblingErr.message);
           }
-
-          // If still not found and it's just a folder name (no path separators), check sibling directly
-          if (!foundPath && !path.isAbsolute(cleanedPath) && !cleanedPath.includes(path.sep) && !cleanedPath.includes('\\')) {
-            const directSiblingPath = path.join(parentDir, cleanedPath);
-            try {
-              const stats = await fs.stat(directSiblingPath);
-              if (stats.isDirectory()) {
-                foundPath = directSiblingPath;
-                console.log("✓ Found folder as direct sibling:", foundPath);
-              }
-            } catch {}
-          }
-        } catch (siblingErr) {
-          console.log("Error checking siblings:", siblingErr.message);
         }
-      }
 
         let errorMessage = `Invalid repository path: ${err.message}\n\n`;
         errorMessage += `Attempted path: ${normalizedPath}\n\n`;
@@ -293,7 +304,7 @@ async function runQualityScan(repoPath, jobId, jobs) {
           const siblings = await fs.readdir(parentDir).catch(() => []);
           if (siblings.length > 0) {
             errorMessage += `Found ${siblings.length} items in "${parentDir}":\n`;
-            siblings.slice(0, 15).forEach(sibling => {
+            siblings.slice(0, 15).forEach((sibling) => {
               errorMessage += `  • ${sibling}\n`;
             });
             if (siblings.length > 15) {
@@ -303,15 +314,18 @@ async function runQualityScan(repoPath, jobId, jobs) {
 
             // Check for similar names
             const folderName = path.basename(normalizedPath).toLowerCase();
-            const similar = siblings.filter(s => {
+            const similar = siblings.filter((s) => {
               const sLower = s.toLowerCase();
-              return sLower.includes(folderName) || folderName.includes(sLower) ||
-                     sLower.startsWith(folderName.substring(0, 5)) ||
-                     folderName.startsWith(sLower.substring(0, 5));
+              return (
+                sLower.includes(folderName) ||
+                folderName.includes(sLower) ||
+                sLower.startsWith(folderName.substring(0, 5)) ||
+                folderName.startsWith(sLower.substring(0, 5))
+              );
             });
             if (similar.length > 0) {
               errorMessage += `Similar folder names found in this directory:\n`;
-              similar.forEach(s => {
+              similar.forEach((s) => {
                 errorMessage += `  • ${s}\n`;
               });
               errorMessage += `\n`;
@@ -354,7 +368,19 @@ async function runQualityScan(repoPath, jobId, jobs) {
             const homeDir = process.env.USERPROFILE || process.env.HOME;
             if (homeDir) {
               // Search in common subdirectories - look for the EXACT folder name
-              const commonSubdirs = ["Documents", "Desktop", "Downloads", "projects", "Projects", "source", "Source", "dev", "Dev", "code", "Code"];
+              const commonSubdirs = [
+                "Documents",
+                "Desktop",
+                "Downloads",
+                "projects",
+                "Projects",
+                "source",
+                "Source",
+                "dev",
+                "Dev",
+                "code",
+                "Code",
+              ];
               for (const subdir of commonSubdirs) {
                 // Only check if the folder exists WITH the exact name we're looking for
                 searchPaths.push(path.join(homeDir, subdir, cleanedPath));
@@ -365,7 +391,8 @@ async function runQualityScan(repoPath, jobId, jobs) {
           }
 
           let searchFound = false;
-          for (const searchPath of searchPaths.slice(0, 20)) { // Limit to 20 searches
+          for (const searchPath of searchPaths.slice(0, 20)) {
+            // Limit to 20 searches
             try {
               const stats = await fs.stat(searchPath);
               // CRITICAL: Make sure it's a directory AND the basename matches what we're looking for
@@ -373,7 +400,9 @@ async function runQualityScan(repoPath, jobId, jobs) {
                 const searchPathBase = path.basename(searchPath);
                 const cleanedPathBase = path.basename(cleanedPath);
                 // Only match if the folder name matches (case-insensitive)
-                if (searchPathBase.toLowerCase() === cleanedPathBase.toLowerCase()) {
+                if (
+                  searchPathBase.toLowerCase() === cleanedPathBase.toLowerCase()
+                ) {
                   errorMessage += `✓ FOUND IT! The folder exists at:\n`;
                   errorMessage += `  ${searchPath}\n\n`;
                   errorMessage += `Please use this full path: ${searchPath}`;
@@ -391,16 +420,19 @@ async function runQualityScan(repoPath, jobId, jobs) {
               const parentDir = path.dirname(normalizedPath);
               const siblings = await fs.readdir(parentDir).catch(() => []);
               const folderName = path.basename(normalizedPath).toLowerCase();
-              const similar = siblings.filter(s => {
+              const similar = siblings.filter((s) => {
                 const sLower = s.toLowerCase();
                 // More strict matching - folder should start with similar characters
-                return (sLower.startsWith(folderName.substring(0, 4)) || folderName.startsWith(sLower.substring(0, 4))) &&
-                       Math.abs(sLower.length - folderName.length) < 10; // Length should be similar
+                return (
+                  (sLower.startsWith(folderName.substring(0, 4)) ||
+                    folderName.startsWith(sLower.substring(0, 4))) &&
+                  Math.abs(sLower.length - folderName.length) < 10
+                ); // Length should be similar
               });
 
               if (similar.length > 0) {
                 errorMessage += `Did you mean one of these folders?\n`;
-                similar.forEach(s => {
+                similar.forEach((s) => {
                   const suggestedPath = path.join(parentDir, s);
                   errorMessage += `  • ${suggestedPath}\n`;
                 });

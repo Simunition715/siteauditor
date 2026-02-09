@@ -1,4 +1,3 @@
-const chromeLauncher = require("chrome-launcher");
 const axios = require("axios");
 const cheerio = require("cheerio");
 
@@ -51,7 +50,9 @@ async function auditWebsite(url, jobId, jobs) {
 }
 
 async function runLighthouse(url, jobId, jobs) {
-  const chrome = await chromeLauncher.launch({
+  const chromeLauncher = await import("chrome-launcher");
+  const launcher = chromeLauncher.default || chromeLauncher;
+  const chrome = await launcher.launch({
     chromeFlags: ["--headless", "--no-sandbox", "--disable-setuid-sandbox"],
   });
 
@@ -66,77 +67,68 @@ async function runLighthouse(url, jobId, jobs) {
     const runnerResult = await lighthouse(url, options);
     const lhr = runnerResult.lhr;
 
-    // Extract comprehensive metrics from Lighthouse
+    // Extract comprehensive metrics from Lighthouse (no optional chaining for Node < 14)
+    const audits = lhr.audits || {};
+    const nav = (obj, ...keys) => {
+      let v = obj;
+      for (const k of keys) v = v && v[k];
+      return v;
+    };
     const metrics = {
       performance: {
-        score: Math.round(lhr.categories.performance.score * 100),
-        lcp: lhr.audits["largest-contentful-paint"]?.numericValue || 0,
-        cls: lhr.audits["cumulative-layout-shift"]?.numericValue || 0,
-        inp: lhr.audits["interactive"]?.numericValue || 0,
-        fcp: lhr.audits["first-contentful-paint"]?.numericValue || 0,
-        totalBlockingTime: lhr.audits["total-blocking-time"]?.numericValue || 0,
-        speedIndex: lhr.audits["speed-index"]?.numericValue || 0,
-        ttfb: lhr.audits["server-response-time"]?.numericValue || 0,
-        renderBlockingResources:
-          lhr.audits["render-blocking-resources"]?.details?.items?.length || 0,
-        unusedCSS:
-          lhr.audits["unused-css-rules"]?.details?.overallSavingsBytes || 0,
-        unusedJS:
-          lhr.audits["unused-javascript"]?.details?.overallSavingsBytes || 0,
-        imageSizing:
-          lhr.audits["uses-optimized-images"]?.details?.items?.length || 0,
-        modernImageFormats:
-          lhr.audits["uses-webp-images"]?.details?.items?.length || 0,
-        fontDisplay: lhr.audits["font-display"]?.details?.items?.length || 0,
-        lazyLoadableImages:
-          lhr.audits["offscreen-images"]?.details?.items?.length || 0,
+        score: Math.round((lhr.categories && lhr.categories.performance && lhr.categories.performance.score) * 100),
+        lcp: nav(audits, "largest-contentful-paint", "numericValue") || 0,
+        cls: nav(audits, "cumulative-layout-shift", "numericValue") || 0,
+        inp: nav(audits, "interactive", "numericValue") || 0,
+        fcp: nav(audits, "first-contentful-paint", "numericValue") || 0,
+        totalBlockingTime: nav(audits, "total-blocking-time", "numericValue") || 0,
+        speedIndex: nav(audits, "speed-index", "numericValue") || 0,
+        ttfb: nav(audits, "server-response-time", "numericValue") || 0,
+        renderBlockingResources: nav(audits, "render-blocking-resources", "details", "items", "length") || 0,
+        unusedCSS: nav(audits, "unused-css-rules", "details", "overallSavingsBytes") || 0,
+        unusedJS: nav(audits, "unused-javascript", "details", "overallSavingsBytes") || 0,
+        imageSizing: nav(audits, "uses-optimized-images", "details", "items", "length") || 0,
+        modernImageFormats: nav(audits, "uses-webp-images", "details", "items", "length") || 0,
+        fontDisplay: nav(audits, "font-display", "details", "items", "length") || 0,
+        lazyLoadableImages: nav(audits, "offscreen-images", "details", "items", "length") || 0,
       },
       seo: {
-        score: Math.round(lhr.categories.seo.score * 100),
+        score: Math.round((lhr.categories && lhr.categories.seo && lhr.categories.seo.score) * 100),
         audits: lhr.audits,
       },
       accessibility: {
-        score: Math.round(lhr.categories.accessibility.score * 100),
+        score: Math.round((lhr.categories && lhr.categories.accessibility && lhr.categories.accessibility.score) * 100),
         audits: lhr.audits,
-        colorContrast:
-          lhr.audits["color-contrast"]?.details?.items?.length || 0,
-        altText: lhr.audits["image-alt"]?.details?.items?.length || 0,
-        formLabels: lhr.audits["label"]?.details?.items?.length || 0,
-        ariaAttributes:
-          lhr.audits["aria-valid-attr"]?.details?.items?.length || 0,
-        keyboardNavigation:
-          lhr.audits["keyboard-navigable"]?.details?.items?.length || 0,
-        focusIndicators: lhr.audits["focus-traps"]?.details?.items?.length || 0,
-        headingStructure:
-          lhr.audits["heading-order"]?.details?.items?.length || 0,
-        landmarks: lhr.audits["landmark-one-main"]?.score === 1,
-        skipLinks: lhr.audits["skip-link"]?.score === 1,
+        colorContrast: nav(audits, "color-contrast", "details", "items", "length") || 0,
+        altText: nav(audits, "image-alt", "details", "items", "length") || 0,
+        formLabels: nav(audits, "label", "details", "items", "length") || 0,
+        ariaAttributes: nav(audits, "aria-valid-attr", "details", "items", "length") || 0,
+        keyboardNavigation: nav(audits, "keyboard-navigable", "details", "items", "length") || 0,
+        focusIndicators: nav(audits, "focus-traps", "details", "items", "length") || 0,
+        headingStructure: nav(audits, "heading-order", "details", "items", "length") || 0,
+        landmarks: nav(audits, "landmark-one-main", "score") === 1,
+        skipLinks: nav(audits, "skip-link", "score") === 1,
       },
       bestPractices: {
-        score: Math.round(lhr.categories["best-practices"]?.score * 100 || 0),
-        https: lhr.audits["is-on-https"]?.score === 1,
-        mixedContent: lhr.audits["mixed-content"]?.details?.items?.length || 0,
+        score: Math.round(nav(lhr.categories, "best-practices", "score") * 100 || 0),
+        https: nav(audits, "is-on-https", "score") === 1,
+        mixedContent: nav(audits, "mixed-content", "details", "items", "length") || 0,
         securityHeaders: {
-          csp: lhr.audits["csp-xss"]?.score === 1,
-          hsts: false, // Not directly in Lighthouse
+          csp: nav(audits, "csp-xss", "score") === 1,
+          hsts: false,
           xFrameOptions: false,
           xContentTypeOptions: false,
         },
-        consoleErrors:
-          lhr.audits["errors-in-console"]?.details?.items?.length || 0,
-        documentWrite: lhr.audits["no-document-write"]?.score === 1,
-        http2: lhr.audits["uses-http2"]?.score === 1,
-        cacheHeaders:
-          lhr.audits["uses-long-cache-ttl"]?.details?.items?.length || 0,
-        compression:
-          lhr.audits["uses-text-compression"]?.details?.items?.length || 0,
+        consoleErrors: nav(audits, "errors-in-console", "details", "items", "length") || 0,
+        documentWrite: nav(audits, "no-document-write", "score") === 1,
+        http2: nav(audits, "uses-http2", "score") === 1,
+        cacheHeaders: nav(audits, "uses-long-cache-ttl", "details", "items", "length") || 0,
+        compression: nav(audits, "uses-text-compression", "details", "items", "length") || 0,
       },
       audits: lhr.audits,
-      pageWeight: lhr.audits["total-byte-weight"]?.numericValue || 0,
-      requests: lhr.audits["network-requests"]?.details?.items?.length || 0,
-      // GEO info from Lighthouse
-      geolocationPermission:
-        lhr.audits["geolocation-on-start"]?.score === 1 ? false : true,
+      pageWeight: nav(audits, "total-byte-weight", "numericValue") || 0,
+      requests: nav(audits, "network-requests", "details", "items", "length") || 0,
+      geolocationPermission: nav(audits, "geolocation-on-start", "score") === 1 ? false : true,
     };
 
     return metrics;
@@ -225,13 +217,9 @@ async function runHtmlChecks(url, jobId, jobs, lighthouseResults = {}) {
       },
       robots: {
         hasNoindex:
-          cheerioInstance('meta[name="robots"]')
-            .attr("content")
-            ?.includes("noindex") || false,
+          (cheerioInstance('meta[name="robots"]').attr("content") || "").includes("noindex") || false,
         hasNofollow:
-          cheerioInstance('meta[name="robots"]')
-            .attr("content")
-            ?.includes("nofollow") || false,
+          (cheerioInstance('meta[name="robots"]').attr("content") || "").includes("nofollow") || false,
       },
       canonical: {
         exists: cheerioInstance('link[rel="canonical"]').length > 0,
@@ -313,8 +301,8 @@ async function runHtmlChecks(url, jobId, jobs, lighthouseResults = {}) {
       content: {
         readability: {
           // Simple word count heuristic
-          wordCount: html.match(/\b\w+\b/g)?.length || 0,
-          sentenceCount: html.match(/[.!?]+/g)?.length || 0,
+          wordCount: (html.match(/\b\w+\b/g) || []).length || 0,
+          sentenceCount: (html.match(/[.!?]+/g) || []).length || 0,
           avgWordsPerSentence: 0, // Will calculate below
         },
         headings: {
@@ -433,7 +421,7 @@ async function runHtmlChecks(url, jobId, jobs, lighthouseResults = {}) {
 
       // Technical Health Checks
       technical: {
-        consoleErrors: lighthouseResults.bestPractices?.consoleErrors || 0,
+        consoleErrors: (lighthouseResults.bestPractices && lighthouseResults.bestPractices.consoleErrors) || 0,
         redirects: {
           // Check response status
           status: responseStatus,
@@ -459,7 +447,7 @@ async function runHtmlChecks(url, jobId, jobs, lighthouseResults = {}) {
       // Security Checks
       security: {
         https: url.startsWith("https://"),
-        mixedContent: lighthouseResults.bestPractices?.mixedContent || 0,
+        mixedContent: (lighthouseResults.bestPractices && lighthouseResults.bestPractices.mixedContent) || 0,
         securityHeaders: {
           csp: responseHeaders["content-security-policy"] ? true : false,
           hsts: responseHeaders["strict-transport-security"] ? true : false,
@@ -738,7 +726,7 @@ async function runHtmlChecks(url, jobId, jobs, lighthouseResults = {}) {
           return {
             url: link,
             status: "broken",
-            statusCode: error.response?.status,
+            statusCode: (error.response && error.response.status),
           };
         }
       })
@@ -976,7 +964,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
   }
 
   // GEO issues
-  if (htmlChecks.geo?.geolocationPermission) {
+  if ((htmlChecks.geo && htmlChecks.geo.geolocationPermission)) {
     issues.push({
       category: "geo",
       title: "Geolocation Permission Requested on Page Load",
@@ -989,7 +977,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
     });
   }
 
-  if (!htmlChecks.geo?.language?.hasValidLang) {
+  if (!(htmlChecks.geo && htmlChecks.geo.language && htmlChecks.geo.language.hasValidLang)) {
     issues.push({
       category: "geo",
       title: "Missing Language Attribute",
@@ -1004,7 +992,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
   }
 
   if (
-    htmlChecks.geo?.hreflang?.exists &&
+    (htmlChecks.geo && htmlChecks.geo.hreflang && htmlChecks.geo.hreflang.exists) &&
     !htmlChecks.geo.hreflang.tags.some((tag) => tag.lang === "x-default")
   ) {
     issues.push({
@@ -1020,9 +1008,9 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
   }
 
   if (
-    htmlChecks.geo?.language?.htmlLang &&
+    (htmlChecks.geo && htmlChecks.geo.language && htmlChecks.geo.language.htmlLang) &&
     htmlChecks.geo.language.htmlLang.length > 2 &&
-    !htmlChecks.geo?.cldr?.hasLocale
+    !(htmlChecks.geo && htmlChecks.geo.cldr && htmlChecks.geo.cldr.hasLocale)
   ) {
     issues.push({
       category: "geo",
@@ -1037,7 +1025,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
   }
 
   // Mobile Experience issues
-  if (!htmlChecks.mobile?.viewport?.exists) {
+  if (!(htmlChecks.mobile && htmlChecks.mobile.viewport && htmlChecks.mobile.viewport.exists)) {
     issues.push({
       category: "mobile",
       title: "Missing Viewport Meta Tag",
@@ -1050,7 +1038,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
     });
   }
 
-  if (htmlChecks.mobile?.tapTargets?.smallButtons > 5) {
+  if ((htmlChecks.mobile && htmlChecks.mobile.tapTargets && (htmlChecks.mobile.tapTargets.smallButtons || 0) > 5)) {
     issues.push({
       category: "mobile",
       title: "Small Tap Targets",
@@ -1063,7 +1051,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
   }
 
   // Content Quality issues
-  if (htmlChecks.content?.readability?.wordCount < 300) {
+  if ((htmlChecks.content && htmlChecks.content.readability && htmlChecks.content.readability.wordCount < 300)) {
     issues.push({
       category: "content",
       title: "Thin Content",
@@ -1075,7 +1063,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
     });
   }
 
-  if (!htmlChecks.content?.aboveFold?.hasValueProp) {
+  if (!(htmlChecks.content && htmlChecks.content.aboveFold && htmlChecks.content.aboveFold.hasValueProp)) {
     issues.push({
       category: "content",
       title: "Unclear Value Proposition Above Fold",
@@ -1089,7 +1077,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
   }
 
   // Conversion Readiness issues
-  if (!htmlChecks.conversion?.cta?.primary?.exists) {
+  if (!(htmlChecks.conversion && htmlChecks.conversion.cta && htmlChecks.conversion.cta.primary && htmlChecks.conversion.cta.primary.exists)) {
     issues.push({
       category: "conversion",
       title: "Missing Primary Call-to-Action",
@@ -1100,7 +1088,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
       fix: "Add a clear, prominent call-to-action button (e.g., 'Get Started', 'Contact Us', 'Buy Now').",
       estimatedImpact: "Can significantly improve conversion rates",
     });
-  } else if (!htmlChecks.conversion?.cta?.primary?.aboveFold) {
+  } else if (!(htmlChecks.conversion && htmlChecks.conversion.cta && htmlChecks.conversion.cta.primary && htmlChecks.conversion.cta.primary.aboveFold)) {
     issues.push({
       category: "conversion",
       title: "CTA Not Visible Above Fold",
@@ -1113,7 +1101,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
     });
   }
 
-  if (htmlChecks.conversion?.forms?.count === 0) {
+  if ((htmlChecks.conversion && htmlChecks.conversion.forms && htmlChecks.conversion.forms.count === 0)) {
     issues.push({
       category: "conversion",
       title: "No Contact Forms",
@@ -1127,7 +1115,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
   }
 
   // Technical Health issues
-  if (htmlChecks.technical?.consoleErrors > 0) {
+  if ((htmlChecks.technical && htmlChecks.technical.consoleErrors > 0)) {
     issues.push({
       category: "technical",
       title: "JavaScript Console Errors",
@@ -1139,7 +1127,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
     });
   }
 
-  if (htmlChecks.technical?.canonicalConflicts) {
+  if ((htmlChecks.technical && htmlChecks.technical.canonicalConflicts)) {
     issues.push({
       category: "technical",
       title: "Multiple Canonical Tags",
@@ -1153,7 +1141,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
   }
 
   // Security issues
-  if (!htmlChecks.security?.https) {
+  if (!(htmlChecks.security && htmlChecks.security.https)) {
     issues.push({
       category: "security",
       title: "No HTTPS/SSL Certificate",
@@ -1166,7 +1154,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
     });
   }
 
-  if (htmlChecks.security?.mixedContent > 0) {
+  if ((htmlChecks.security && htmlChecks.security.mixedContent > 0)) {
     issues.push({
       category: "security",
       title: "Mixed Content Detected",
@@ -1178,7 +1166,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
     });
   }
 
-  if (!htmlChecks.security?.securityHeaders?.csp) {
+  if (!(htmlChecks.security && htmlChecks.security.securityHeaders && htmlChecks.security.securityHeaders.csp)) {
     issues.push({
       category: "security",
       title: "Missing Content Security Policy",
@@ -1193,8 +1181,8 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
 
   // Analytics issues
   if (
-    !htmlChecks.analytics?.googleAnalytics &&
-    !htmlChecks.analytics?.tagManager
+    !(htmlChecks.analytics && htmlChecks.analytics.googleAnalytics) &&
+    !(htmlChecks.analytics && htmlChecks.analytics.tagManager)
   ) {
     issues.push({
       category: "analytics",
@@ -1210,7 +1198,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
   }
 
   // Structured Data issues
-  if (!htmlChecks.structuredData?.present) {
+  if (!(htmlChecks.structuredData && htmlChecks.structuredData.present)) {
     issues.push({
       category: "structuredData",
       title: "No Structured Data",
@@ -1224,7 +1212,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
     });
   }
 
-  if (!htmlChecks.structuredData?.schemas?.organization) {
+  if (!(htmlChecks.structuredData && htmlChecks.structuredData.schemas && htmlChecks.structuredData.schemas.organization)) {
     issues.push({
       category: "structuredData",
       title: "Missing Organization Schema",
@@ -1238,7 +1226,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
   }
 
   // Legal & Compliance issues
-  if (!htmlChecks.legal?.gdpr && !htmlChecks.legal?.cookieConsent) {
+  if (!(htmlChecks.legal && htmlChecks.legal.gdpr) && !(htmlChecks.legal && htmlChecks.legal.cookieConsent)) {
     issues.push({
       category: "legal",
       title: "Missing GDPR/Cookie Consent",
@@ -1251,7 +1239,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
     });
   }
 
-  if (!htmlChecks.legal?.dataCollection) {
+  if (!(htmlChecks.legal && htmlChecks.legal.dataCollection)) {
     issues.push({
       category: "legal",
       title: "Missing Data Collection Transparency",
@@ -1265,7 +1253,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
   }
 
   // SEO - Additional issues
-  if (!htmlChecks.robotsTxt?.exists) {
+  if (!(htmlChecks.robotsTxt && htmlChecks.robotsTxt.exists)) {
     issues.push({
       category: "seo",
       title: "Missing robots.txt",
@@ -1278,7 +1266,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
     });
   }
 
-  if (!htmlChecks.headingHierarchy?.isValid) {
+  if (!(htmlChecks.headingHierarchy && htmlChecks.headingHierarchy.isValid)) {
     issues.push({
       category: "seo",
       title: "Invalid Heading Hierarchy",
@@ -1292,7 +1280,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
     });
   }
 
-  if (htmlChecks.internalLinking?.maxDepth > 4) {
+  if ((htmlChecks.internalLinking && htmlChecks.internalLinking.maxDepth > 4)) {
     issues.push({
       category: "seo",
       title: "Deep Internal Linking Structure",
@@ -1305,10 +1293,10 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
   }
 
   // Conversion - Form issues
-  if (htmlChecks.conversion?.forms?.count > 0) {
+  if ((htmlChecks.conversion && htmlChecks.conversion.forms && htmlChecks.conversion.forms.count > 0)) {
     if (
-      !htmlChecks.conversion.forms.errorHandling?.hasErrorMessages &&
-      !htmlChecks.conversion.forms.errorHandling?.hasAriaInvalid
+      !(htmlChecks.conversion.forms.errorHandling && htmlChecks.conversion.forms.errorHandling.hasErrorMessages) &&
+      !(htmlChecks.conversion.forms.errorHandling && htmlChecks.conversion.forms.errorHandling.hasAriaInvalid)
     ) {
       issues.push({
         category: "conversion",
@@ -1339,7 +1327,7 @@ function generateReport(url, lighthouseResults, htmlChecks, scores) {
   }
 
   // Accessibility - Error messages
-  if (htmlChecks.accessibility?.accessibleErrorMessages) {
+  if ((htmlChecks.accessibility && htmlChecks.accessibility.accessibleErrorMessages)) {
     if (
       !htmlChecks.accessibility.accessibleErrorMessages.hasAriaLive &&
       !htmlChecks.accessibility.accessibleErrorMessages.hasRoleAlert
